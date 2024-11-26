@@ -1,27 +1,12 @@
-import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
-import axios from "@/lib/axios";
-import styles from "@/styles/Product.module.css";
-import SizeReviewList from "@/components/SizeReviewList";
-import StarRating from "@/components/StarRating";
-import Image from "next/image";
-import Spinner from "@/components/Spinner";
+import axios from '@/lib/axios';
+import styles from '@/styles/Product.module.css';
+import SizeReviewList from '@/components/SizeReviewList';
+import StarRating from '@/components/StarRating';
+import Image from 'next/image';
+import Spinner from '@/components/Spinner';
 
-export async function getStaticPaths() {
-  const res = await axios.get("/products/");
-  const products = res.data.results;
-  const paths = products.map((product) => ({
-    params: { id: String(product.id) },
-  }));
-
-  return {
-    paths,
-    fallback: true,
-  };
-}
-
-export async function getStaticProps(context) {
-  const productId = context.params["id"];
+export async function getServerSideProps(context) {
+  const productId = context.params['id'];
   let product;
   try {
     const res = await axios.get(`/products/${productId}`);
@@ -32,36 +17,23 @@ export async function getStaticProps(context) {
     };
   }
 
+  const res = await axios.get(`/size_reviews/?product_id=${productId}`);
+  const sizeReviews = res.data.results ?? [];
+  
   return {
     props: {
       product,
-    },
-  };
+      sizeReviews,
+    }
+  }
 }
 
-export default function Product({ product }) {
-  const [sizeReviews, setSizeReviews] = useState([]);
-  const router = useRouter();
-  const { id } = router.query;
-
-  async function getSizeReviews(targetId) {
-    const res = await axios.get(`/size_reviews/?product_id=${targetId}`);
-    const nextSizeReviews = res.data.results ?? [];
-    setSizeReviews(nextSizeReviews);
-  }
-
-  useEffect(() => {
-    if (!id) return;
-
-    getSizeReviews(id);
-  }, [id]);
-
-  if (!product)
-    return (
-      <div className={styles.loading}>
-        <Spinner />
-      </div>
-    );
+export default function Product({ product, sizeReviews }) {
+  if (!product) return (
+    <div className={styles.loading}>
+      <Spinner />
+    </div>
+  );
 
   return (
     <>
@@ -92,7 +64,9 @@ export default function Product({ product }) {
                   <tr>
                     <th>가격</th>
                     <td>
-                      <span className={styles.salePrice}>{product.price.toLocaleString()}원</span>{" "}
+                      <span className={styles.salePrice}>
+                        {product.price.toLocaleString()}원
+                      </span>{' '}
                       {product.salePrice.toLocaleString()}원
                     </td>
                   </tr>
@@ -103,13 +77,16 @@ export default function Product({ product }) {
                   <tr>
                     <th>구매 후기</th>
                     <td className={styles.starRating}>
-                      <StarRating value={product.starRating} />{" "}
+                      <StarRating value={product.starRating} />{' '}
                       {product.starRatingCount.toLocaleString()}
                     </td>
                   </tr>
                   <tr>
                     <th>좋아요</th>
-                    <td className={styles.like}>♥{product.likeCount.toLocaleString()}</td>
+                    <td className={styles.like}>
+                      ♥
+                      {product.likeCount.toLocaleString()}
+                    </td>
                   </tr>
                 </tbody>
               </table>
